@@ -63,6 +63,12 @@ def run_command(cmd, cwd=None, check=True):
 
 def main():
     """主函数"""
+    # 设置输出编码为UTF-8
+    import io
+    if sys.platform == 'win32':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    
     print("=" * 60)
     print("文档生成工具 - 打包脚本")
     print("=" * 60)

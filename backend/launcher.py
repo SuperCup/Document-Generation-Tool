@@ -33,7 +33,7 @@ def get_resource_path(relative_path):
 
 # 获取应用根目录
 def get_app_root():
-    """获取应用程序根目录"""
+    """获取应用程序根目录（exe文件所在目录）"""
     if getattr(sys, 'frozen', False):
         # 打包后的exe文件所在目录
         return Path(sys.executable).parent
@@ -41,8 +41,40 @@ def get_app_root():
         # 开发环境
         return Path(__file__).parent.parent
 
+# 获取后端目录路径
+def get_backend_path():
+    """获取后端目录路径"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的exe环境
+        # backend代码被打包在资源目录中
+        try:
+            resource_backend = Path(sys._MEIPASS) / "backend"
+            if resource_backend.exists():
+                # 使用资源目录中的backend代码
+                return resource_backend
+        except Exception:
+            pass
+        # 如果资源目录中没有，使用exe所在目录下的backend
+        return Path(sys.executable).parent / "backend"
+    else:
+        # 开发环境：launcher.py在backend目录下
+        return Path(__file__).parent
+
+# 获取前端目录路径
+def get_frontend_dir(app_root):
+    """获取前端目录路径"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的exe环境：从资源目录获取
+        try:
+            return Path(sys._MEIPASS) / "frontend_dist"
+        except Exception:
+            return app_root / "frontend_dist"
+    else:
+        # 开发环境
+        return app_root / "frontend_dist"
+
 APP_ROOT = get_app_root()
-FRONTEND_DIR = APP_ROOT / "frontend_dist"
+FRONTEND_DIR = get_frontend_dir(APP_ROOT)
 BACKEND_DIR = get_backend_path()
 
 class FrontendHandler(SimpleHTTPRequestHandler):
@@ -57,11 +89,12 @@ class FrontendHandler(SimpleHTTPRequestHandler):
 def start_backend():
     """启动后端API服务"""
     try:
-        # 切换到backend目录
-        os.chdir(BACKEND_DIR)
+        # 添加backend目录到Python路径
+        backend_path = str(BACKEND_DIR)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
         
         # 导入main模块
-        sys.path.insert(0, str(BACKEND_DIR))
         from main import app
         
         # 启动uvicorn服务器
@@ -75,6 +108,8 @@ def start_backend():
         server.run()
     except Exception as e:
         logger.error(f"后端启动失败: {e}", exc_info=True)
+        import traceback
+        traceback.print_exc()
         input("按Enter键退出...")
         sys.exit(1)
 
@@ -106,11 +141,13 @@ def main():
         input("按Enter键退出...")
         sys.exit(1)
     
-    # 检查后端目录
-    if not BACKEND_DIR.exists():
-        print(f"错误: 后端目录不存在: {BACKEND_DIR}")
-        input("按Enter键退出...")
-        sys.exit(1)
+    # 检查后端目录（仅在开发环境检查）
+    if not getattr(sys, 'frozen', False):
+        backend_path = Path(BACKEND_DIR)
+        if not backend_path.exists():
+            print(f"错误: 后端目录不存在: {backend_path}")
+            input("按Enter键退出...")
+            sys.exit(1)
     
     print("正在启动服务...")
     print()

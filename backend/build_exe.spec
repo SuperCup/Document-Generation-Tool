@@ -8,13 +8,15 @@ from pathlib import Path
 
 # 获取路径 - PyInstaller会设置SPECPATH
 try:
-    spec_file = Path(SPECPATH)
+    # SPECPATH是spec文件所在目录
+    spec_dir = Path(SPECPATH)
+    backend_dir = spec_dir.resolve()
+    root_dir = backend_dir.parent.resolve()
 except NameError:
     # 如果没有SPECPATH，使用当前文件路径
     spec_file = Path(__file__).resolve()
-
-backend_dir = spec_file.parent.resolve()
-root_dir = backend_dir.parent.resolve()
+    backend_dir = spec_file.parent.resolve()
+    root_dir = backend_dir.parent.resolve()
 
 # 确保launcher.py存在
 launcher_path = backend_dir / 'launcher.py'

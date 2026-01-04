@@ -40,33 +40,44 @@ app.add_middleware(
 # 创建必要的目录
 # 使用绝对路径，确保在backend目录下运行
 def get_base_dir():
-    """获取后端基础目录"""
+    """获取后端基础目录（用于存储用户数据）"""
     if getattr(sys, 'frozen', False):
         # 打包后的exe环境
-        # PyInstaller会在临时目录中运行，需要找到实际的数据目录
+        # 数据目录应该在exe所在目录，而不是临时目录
         exe_dir = Path(sys.executable).parent
-        # 尝试找到backend目录
-        backend_dir = exe_dir / "backend"
-        if backend_dir.exists():
-            return backend_dir
-        # 如果不存在，使用exe所在目录
         return exe_dir
     else:
         # 开发环境
         return Path(__file__).parent
 
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 BASE_DIR = get_base_dir()
 UPLOAD_DIR = BASE_DIR / "uploads"
 OUTPUT_DIR = BASE_DIR / "outputs"
-UPLOAD_DIR.mkdir(exist_ok=True)
-OUTPUT_DIR.mkdir(exist_ok=True)
+
+# 确保目录创建成功
+try:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    logger.info(f"数据目录初始化成功:")
+    logger.info(f"  BASE_DIR: {BASE_DIR}")
+    logger.info(f"  UPLOAD_DIR: {UPLOAD_DIR}")
+    logger.info(f"  OUTPUT_DIR: {OUTPUT_DIR}")
+except Exception as e:
+    logger.error(f"错误: 无法创建数据目录: {e}")
+    logger.error(f"BASE_DIR: {BASE_DIR}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
 
 ppt_service = PPTService()
 excel_service = ExcelService()
-
-# 配置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def safe_delete_image(image_path: str) -> bool:
